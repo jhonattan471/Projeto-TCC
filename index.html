@@ -24,6 +24,13 @@
         <a href="#localizacao">Comprar produtos</a>
         <a href="#localizacao">Localização</a>
         <a href="#quem-somos">Quem Somos</a>
+
+        <!-- aparecerá só para admin -->
+        <a id="adminLink" href="admin.html" style="display:none;">Admin</a>
+
+        <!-- info do usuário + sair -->
+        <button id="logoutBtn" type="button">Sair</button>
+        <button id="loginBtn" type="button">Logar</button>
     </nav>
 
     <header>
@@ -98,6 +105,44 @@
     <footer>
         <p>© 2025 Cafeteria Artesanal — Todos os direitos reservados.</p>
     </footer>
+
+    <script>
+        (async () => {
+            document.getElementById('loginBtn').addEventListener('click', () => {
+                console.log("??")
+                location.href = '/login.html'
+            });
+            document.getElementById('logoutBtn').addEventListener('click', logoutAndRedirect);
+
+            // 2) pega dados do usuário logado para decidir visibilidade do Admin
+            //    (se quiser algo mais robusto, devolva "role" em /api/me)
+            const API_BASE = 'http://127.0.0.1:3000';
+            try {
+                const res = await fetch(`${API_BASE}/api/me`, { credentials: 'include', cache: 'no-store' });
+                if (!res.ok) {
+                    document.getElementById('logoutBtn').style.display = 'none';
+                    document.getElementById('loginBtn').style.display = 'block';
+                    return; // já teria redirecionado no requireAuth
+                }
+                document.getElementById('logoutBtn').style.display = 'block';
+                document.getElementById('loginBtn').style.display = 'none';
+                const user = await res.json();
+
+                // mostra email
+                const emailEl = document.getElementById('userEmail');
+                if (emailEl && user?.email) emailEl.textContent = user.email;
+
+                // regra simples: se for o admin “conhecido”, mostra o link
+                // (ou troque por user.role === 'ADMIN' se o backend devolver isso)
+                if (user?.email === 'admin@example.com') {
+                    document.getElementById('adminLink').style.display = '';
+                }
+            } catch { }
+
+
+
+        })();
+    </script>
 </body>
 
 </html>

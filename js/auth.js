@@ -29,7 +29,7 @@ async function requireGuest() {
 // Helper de logout (ex: botão “Sair”)
 async function logoutAndRedirect() {
     await fetch(`${API_BASE}/api/logout`, { method: 'POST', credentials: 'include' });
-    location.href = '/login.html';
+    location.href = '/index.html';
 }
 
 // Exponha globais se quiser chamar no HTML
