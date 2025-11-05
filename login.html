@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Login</title>
+
+    <!-- use caminho relativo, não "/" -->
+    <script>
+        // usa o mesmo host da página (127.0.0.1 ou localhost), mudando só a porta
+        window.API_BASE = `${location.protocol}//${location.hostname}:3000`;
+    </script>
+    <script src="./js/auth.js"></script>
+    <script>
+        requireGuest(); // redireciona se já estiver logado
+    </script>
+</head>
+
+<body>
+    <form id="loginForm" autocomplete="on">
+        <label>Email
+            <input name="email" type="email" required autocomplete="username" value="admin@example.com" />
+        </label>
+        <label>Senha
+            <input name="password" type="password" required autocomplete="current-password" value="minhasenha" />
+        </label>
+        <button type="submit">Entrar</button>
+        <p id="err" style="color:red;display:none"></p>
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_BASE = window.API_BASE || 'http://127.0.0.1:3000';
+            const form = document.getElementById('loginForm');
+            const errBox = document.getElementById('err');
+
+            // Se já estiver logado, manda pra home
+            if (typeof requireGuest === 'function') {
+                requireGuest().catch(() => { });
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                errBox.style.display = 'none';
+                errBox.textContent = '';
+
+                // Validação mínima no front (opcional)
+                const fd = new FormData(form);
+                const email = fd.get('email');
+                const password = fd.get('password');
+                if (!email || !password) {
+                    errBox.textContent = 'Preencha email e senha.';
+                    errBox.style.display = '';
+                    return;
+                }
+
+                const body = new URLSearchParams(fd);
+
+                try {
+                    const res = await fetch(`${API_BASE}/api/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body,
+                        credentials: 'include',      // 🔑 necessário para cookie HttpOnly
+                        mode: 'cors',                // deixa explícito
+                        cache: 'no-store'
+                    });
+
+                    // 204 esperado (sem corpo)
+                    if (res.status === 204) {
+                        location.href = './index.html';
+                        return;
+                    }
+
+                    // Qualquer outro status, tenta mostrar erro
+                    let msg = 'Falha no login';
+                    try {
+                        const j = await res.json();
+                        if (j?.message) msg = j.message;
+                    } catch { }
+                    throw new Error(msg);
+                } catch (err) {
+                    console.error('Login error:', err);
+                    errBox.textContent = err.message || 'Erro ao entrar';
+                    errBox.style.display = '';
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=SUSE+Mono:ital,wght@0,100..800;1,100..800&display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Roboto:ital,wght@0,100..800;1,100..800&display=swap"
+        rel="stylesheet">
+
+    <title>Coffe ON</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="/js/auth.js"></script>
+    <script>
+        // Garante login antes de renderizar a página
+        requireAuth();
+    </script>
+</head>
+
+<body>
+    <nav>
+        <a href="index.html">Home</a>
+    </nav>
+
+    <div class="center-flex" style="height: 100%;gap:20px">
+        <h1>Cadastro de Produto</h1>
+        <form id="meuForm" style="display:flex;flex-direction:column;gap :20px">
+            <div class="input-wrapper">
+                <label>
+                    id:
+                </label>
+                <input disabled type="number" id="id" name="id">
+            </div>
+            <div class="input-wrapper">
+                <label>
+                    Nome:
+                </label>
+                <input type="text" name="nome" id="nome">
+            </div>
+            <div class="input-wrapper">
+                <label>
+                    Descrição:
+                </label>
+                <input type="textarea" name="descricao" id="descricao">
+            </div>
+            <div class="input-wrapper">
+                <label>
+                    URL:
+                </label>
+                <input type="textarea" name="url" id="url">
+            </div>
+            <div class="input-wrapper">
+                <label>
+                    Valor:
+                </label>
+                <input type="number" name="valor" id="valor">
+            </div>
+
+            <button id="cadastrar" type="submit">Salvar</button>
+        </form>
+    </div>
+
+</body>
+
+</html>

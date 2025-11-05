@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoffeOn</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=SUSE+Mono:ital,wght@0,100..800;1,100..800&display=swap"
+        rel="stylesheet">
+</head>
+
+<style>
+    * {
+        font-family: "SUSE Mono", sans-serif;
+        font-optical-sizing: auto;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-size: 16px;
+    }
+
+    .banner {
+        position: relative;
+        min-height: 60vh;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        color: #fff;
+        /* height: 700px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        color: white;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(10px); */
+
+    }
+
+    .banner::before {
+        background-image: url("bg1.jpg");
+        content: "";
+        position: absolute;
+        inset: 0;
+        filter: blur(3px);
+        transform: scale(1.05);
+        /* evita bordas duras do blur */
+        z-index: -1;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+
+    }
+
+    nav {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        font-size: 1.5rem;
+    }
+
+    nav a {
+        color: white !important;
+        text-decoration: none;
+        padding-top: 20px;
+    }
+
+    .TITULO {
+        font-size: 3rem;
+        color: orange;
+        text-align: center;
+        margin-top: 100px;
+        font-weight: 700;
+    }
+
+    .subtitulo {
+        font-size: 1.25rem;
+        color: white;
+        text-align: center;
+    }
+</style>
+
+<body>
+    <div class="banner">
+        <nav>
+            <a href="index.html">
+                Home
+            </a>
+            <a href="index.html">
+                Sobre
+            </a>
+            <a href="index.html">
+                Contato
+            </a>
+        </nav>
+        <div class="TITULO">
+            O sabor do café que você merece!
+        </div>
+        <div class="subtitulo">
+            Na <span>CoffeeOn</span>, cada grão conta uma história. Experimente cafés selecionados, torrados com
+            perfeição e entregues com frescor até você.
+        </div>
+
+    </div>
+    <h1>Requisição HTTP com Fetch 2</h1>
+    <button id="carregar">Carregar Dados</button>
+    <form id="meuForm">
+        <div>
+            <label>
+                id:
+            </label>
+            <input type="number" id="id" name="id">
+        </div>
+        <div>
+            <label>
+                Nome:
+            </label>
+            <input type="text" name="nome" id="nome">
+        </div>
+        <div>
+            <label>
+                Descrição:
+            </label>
+            <input type="textarea" name="descricao" id="descricao">
+        </div>
+        <div>
+            <label>
+                Valor:
+            </label>
+            <input type="number" name="valor" id="valor">
+        </div>
+
+        <button id="cadastrar" type="submit">Cadastrar Produto</button>
+    </form>
+    <div id="resultado"></div>
+
+    <script>
+        document.getElementById("carregar").addEventListener("click", () => {
+            fetch("http://localhost:3000/produtos") // URL de exemplo
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById("resultado");
+                    container.innerHTML = ""; // limpa antes de renderizar
+
+                    data.forEach(produto => {
+                        const item = document.createElement("div");
+                        item.style.border = "1px solid #ccc";
+                        item.style.padding = "10px";
+                        item.style.margin = "5px";
+                        item.style.borderRadius = "8px";
+
+                        // conteúdo do produto
+                        item.innerHTML = `
+                    <strong>ID:</strong> ${produto.id}<br>
+                    <strong>Nome:</strong> ${produto.nome}<br>
+                    <strong>Preço:</strong> R$ ${produto.valor}<br>
+                    <button class="editar" data-id="${produto.id}">Editar</button>
+                    <button class="remover" data-id="${produto.id}">Remover</button>
+                `;
+
+                        container.appendChild(item);
+                    });
+
+                    // adiciona evento aos botões editar
+                    document.querySelectorAll(".editar").forEach(botao => {
+                        botao.addEventListener("click", async (e) => {
+                            const id = e.target.dataset.id;
+                            await editar(id)
+                        });
+                    });
+
+                    document.querySelectorAll(".remover").forEach(botao => {
+                        botao.addEventListener("click", async (e) => {
+                            const id = e.target.dataset.id;
+                            await remover(id).then((resposta) => {
+                                alert("Removido");
+                                document.getElementById("carregar").click();
+
+                            }).catch((erro) => {
+                                console.error(erro)
+                                alert("Erro ao remover")
+
+                            })
+                        });
+                    });
+                })
+                .catch(error => console.error("Erro na requisição:", error));
+        });
+    </script>
+
+    <script>
+        async function editar(id) {
+            let produto = await getById(id);
+            console.log(produto);
+            document.getElementById("id").value = produto.id
+            document.getElementById("nome").value = produto.nome
+            document.getElementById("descricao").value = produto.descricao
+            document.getElementById("valor").value = produto.valor
+            return
+        }
+    </script>
+
+    <script>
+        async function getById(id) {
+            return fetch("http://localhost:3000/produtos/" + id) // URL de exemplo
+                .then(response => response.json())
+        }
+
+        async function remover(id) {
+            return fetch("http://localhost:3000/produtos/" + id, {
+                method: "delete",
+                headers: { "Content-Type": "application/json" },
+            })
+                .then(response => response.json())
+        }
+
+    </script>
+
+    <script>
+        const form = document.getElementById("meuForm");
+
+        form.addEventListener("submit", function (event) {
+            event.preventDefault(); // 🚫 impede o reload da página
+
+            const formData = new FormData(form);
+            const dados = Object.fromEntries(formData);
+
+            console.log(dados);
+
+            const temId = dados.id && dados.id.trim() !== "";
+
+            const url = temId
+                ? `http://localhost:3000/produtos/${dados.id}` // Edição
+                : "http://localhost:3000/produtos";            // Criação
+
+            const metodo = temId ? "PUT" : "POST";
+
+            fetch(url, {
+                method: metodo,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(dados)
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error("Erro na resposta do servidor");
+                    return response.json();
+                })
+                .then(data => {
+                    alert("Sucesso!");
+                    document.getElementById("carregar").click();
+                    console.log(data);
+                })
+                .catch(error => {
+                    alert("Erro ao enviar requisição");
+                    console.error("Erro na requisição:", error);
+                });
+        });
+
+    </script>
+
+    <script>
+        document.getElementById("carregar").click();
+
+    </script>
+
+</body>
+
+</html>
