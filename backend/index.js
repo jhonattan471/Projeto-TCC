@@ -4,6 +4,7 @@ const mysql = require('mysql2');
 const querystring = require('querystring');
 const bcrypt = require('bcrypt'); // npm i bcrypt
 
+
 // ===================
 // CONFIG
 // ===================
@@ -24,6 +25,7 @@ const connection = mysql.createConnection({
   database: 'coffe'
 });
 
+
 // ===================
 // HELPERS
 // ===================
@@ -31,6 +33,8 @@ function setCors(req, res) {
   const allow = new Set([
     'http://localhost:5500',
     'http://127.0.0.1:5500',
+    'http://127.0.0.1:5501',
+    'http://localhost:5501',
   ]);
   const origin = req.headers.origin;
   if (allow.has(origin)) {
@@ -104,6 +108,13 @@ async function getSession(req) {
 // ===================
 // SERVIDOR
 // ===================
+const usuarioController = require('./controllers/usuarioController')({
+  connection,
+  bcrypt,
+  readBody,
+  setJson,
+});
+
 const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const method = req.method;
@@ -119,6 +130,20 @@ const server = http.createServer(async (req, res) => {
     res.statusCode = 204;
     res.end();
     return;
+  }
+
+  // PUBLIC: criar usuário comum (não-admin não consegue criar ADMIN)
+  if (method === 'POST' && path === '/usuarios') {
+    // sem sessão = 'ANON'; se estiver logado e for ADMIN, poderá criar ADMIN
+    let actorRole = 'ANON';
+    const sessTry = await getSession(req);
+    if (sessTry) {
+      const [me] = await connection.promise().execute(
+        'SELECT role FROM usuarios WHERE id = ? LIMIT 1', [sessTry.id]
+      );
+      actorRole = me?.[0]?.role || 'USER';
+    }
+    return usuarioController.create(req, res, { actorRole });
   }
 
   // =========================
@@ -170,6 +195,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   req.user = sess;
+
+  const [meRows] = await connection.promise().execute(
+    'SELECT role FROM usuarios WHERE id = ? LIMIT 1',
+    [req.user.id]
+  );
+  const myRole = meRows?.[0]?.role || 'USER';
+  const isAdmin = myRole === 'ADMIN';
 
   // =========================
   // AUTH: GET /api/me (protegid0)
@@ -267,6 +299,34 @@ const server = http.createServer(async (req, res) => {
       }
     );
     return;
+  }
+
+  // =========================
+  // CRUD USUÁRIOS (privado; ideal só ADMIN)
+  // =========================
+  // LISTAR (ADMIN)
+  if (method === 'GET' && path === '/usuarios') {
+    if (!isAdmin) return setJson(res, 403, { message: 'Proibido' });
+    return usuarioController.list(req, res);
+  }
+
+  // GET por id (ADMIN)
+  if (method === 'GET' && path.startsWith('/usuarios/')) {
+    if (!isAdmin) return setJson(res, 403, { message: 'Proibido' });
+    const id = path.split('/')[2];
+    return usuarioController.getById(req, res, id);
+  }
+
+  // UPDATE (ADMIN total; self parcial)
+  if (method === 'PUT' && path.startsWith('/usuarios/')) {
+    const id = path.split('/')[2];
+    return usuarioController.update(req, res, id, { actorId: req.user.id, actorRole: myRole });
+  }
+
+  // DELETE (ADMIN)
+  if (method === 'DELETE' && path.startsWith('/usuarios/')) {
+    const id = path.split('/')[2];
+    return usuarioController.remove(req, res, id, { actorId: req.user.id, actorRole: myRole });
   }
 
   // 404

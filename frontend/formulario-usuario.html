@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coffe ON — Cadastro de Usuário</title>
+
+    <!-- fontes (mesmas do seu index) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=SUSE+Mono:ital,wght@0,100..800;1,100..800&display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Roboto:ital,wght@0,100..800;1,100..800&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- auth helpers -->
+    <script src="./js/auth.js"></script>
+    <style>
+        .center-flex {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: .25rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error {
+            color: #c0392b;
+            font-weight: 600;
+        }
+
+        .success {
+            color: #1e8449;
+            font-weight: 600;
+        }
+
+        form {
+            width: min(560px, 92vw);
+        }
+
+        nav {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <a href="index.html">Home</a>
+    </nav>
+
+    <div class="center-flex" style="height: 100%; gap: 20px;">
+        <h1>Cadastro de Usuário</h1>
+
+        <form id="userForm" style="display:flex; flex-direction:column; gap: 16px;">
+            <div class="input-wrapper">
+                <label>ID:</label>
+                <input disabled type="text" id="id" name="id" placeholder="Gerado automaticamente" />
+            </div>
+
+            <div class="input-wrapper">
+                <label>Nome:</label>
+                <input type="text" id="nome" name="nome" required />
+            </div>
+
+            <div class="input-wrapper">
+                <label>Email:</label>
+                <input type="email" id="email" name="email" required autocomplete="username" />
+            </div>
+
+            <div class="input-wrapper">
+                <label>Senha:</label>
+                <input type="password" id="senha" name="senha" required autocomplete="new-password" />
+            </div>
+
+            <div class="input-wrapper">
+                <label>Confirmar Senha:</label>
+                <input type="password" id="confirmSenha" name="confirmSenha" required autocomplete="new-password" />
+            </div>
+
+            <!-- mostrado só para ADMIN -->
+            <div id="roleRow" class="input-wrapper hidden">
+                <label>Perfil (apenas para admin):</label>
+                <select id="role" name="role">
+                    <option value="USER">USER</option>
+                    <option value="ADMIN">ADMIN</option>
+                </select>
+            </div>
+
+            <div id="msg" class="hidden"></div>
+
+            <button id="btnSalvar" type="submit">Salvar</button>
+        </form>
+    </div>
+
+    <script>
+        (async () => {
+            // Base da API (mantém mesmo host: localhost ou 127.0.0.1)
+            const API_BASE = `${location.protocol}//${location.hostname}:3000`;
+
+            const form = document.getElementById('userForm');
+            const msgBox = document.getElementById('msg');
+            const roleRow = document.getElementById('roleRow');
+            const roleSel = document.getElementById('role');
+
+            // 1) Detecta se o usuário logado é ADMIN
+            //    Tentamos GET /usuarios (rota ADMIN). Se 200 => admin; se 401/403 => não admin.
+            let isAdmin = false;
+            try {
+                const r = await fetch(`${API_BASE}/usuarios`, { credentials: 'include', cache: 'no-store' });
+                isAdmin = r.ok; // 200 é admin
+            } catch {
+                isAdmin = false;
+            }
+            if (isAdmin) roleRow.classList.remove('hidden');
+
+            // 2) Submit do formulário
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                msgBox.className = 'hidden';
+                msgBox.textContent = '';
+
+                const nome = document.getElementById('nome').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const senha = document.getElementById('senha').value;
+                const confirmSenha = document.getElementById('confirmSenha').value;
+
+                if (!nome || !email || !senha) {
+                    showMsg('Preencha nome, email e senha.', true);
+                    return;
+                }
+                if (senha !== confirmSenha) {
+                    showMsg('As senhas não conferem.', true);
+                    return;
+                }
+
+                // Monta o corpo; se admin, envia role escolhido. Se não, não envia (backend força USER).
+                const payload = { nome, email, senha };
+                if (isAdmin && roleSel.value) payload.role = roleSel.value;
+
+                try {
+                    const res = await fetch(`${API_BASE}/usuarios`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                        credentials: 'include'
+                    });
+
+                    if (res.status === 201) {
+                        const j = await res.json();
+                        showMsg(`Usuário criado com sucesso! ID: ${j.id}`, false);
+                        // limpa campos (menos o ID, que é gerado no backend)
+                        form.reset();
+                        roleSel.value = 'USER';
+                    } else {
+                        let err = 'Falha ao criar usuário.';
+                        try {
+                            const j = await res.json();
+                            if (j?.message) err = j.message;
+                        } catch { }
+                        showMsg(err, true);
+                    }
+                } catch (e) {
+                    showMsg('Erro de rede ao salvar usuário.', true);
+                }
+            });
+
+            function showMsg(text, isError) {
+                msgBox.textContent = text;
+                msgBox.className = isError ? 'error' : 'success';
+            }
+        })();
+    </script>
+</body>
+
+</html>

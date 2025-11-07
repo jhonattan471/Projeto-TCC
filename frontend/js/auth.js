@@ -17,19 +17,19 @@ async function isLoggedIn() {
 // Use em páginas protegidas
 async function requireAuth() {
     const ok = await isLoggedIn();
-    if (!ok) location.href = '/login.html';
+    if (!ok) location.href = './login.html';
 }
 
 // Use na página de login (evita mostrar login pra quem já está logado)
 async function requireGuest() {
     const ok = await isLoggedIn();
-    if (ok) location.href = '/index.html';
+    if (ok) location.href = './index.html';
 }
 
 // Helper de logout (ex: botão “Sair”)
 async function logoutAndRedirect() {
     await fetch(`${API_BASE}/api/logout`, { method: 'POST', credentials: 'include' });
-    location.href = '/index.html';
+    location.href = './index.html';
 }
 
 // Exponha globais se quiser chamar no HTML
